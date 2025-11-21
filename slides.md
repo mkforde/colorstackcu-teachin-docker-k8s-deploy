@@ -1,17 +1,28 @@
+---
+marp: true
+theme: default
+paginate: true
+size: 16:9
+---
+
 # Containerization & Deployment Workshop
 ## From Local Development to Kubernetes
 
+**ColorStack CU Teaching Demo**
+
 ---
 
-## Section 1: Introduction & Setup
+# What We'll Build Today
 
-### What We'll Build Today
-- A simple Python Flask web service
-- Containerize it with Docker
-- Orchestrate with Docker Compose
-- Deploy to Kubernetes using Minikube
+- ✅ A simple Python Flask web service
+- ✅ Containerize it with Docker
+- ✅ Orchestrate with Docker Compose
+- ✅ Deploy to Kubernetes using Minikube
 
-### Prerequisites
+---
+
+# Prerequisites
+
 - Python 3.11+ installed
 - Docker Desktop installed
 - kubectl installed
@@ -19,11 +30,15 @@
 
 ---
 
-## Section 2: Building Our Web Service Locally
+<!-- _class: lead -->
+# Section 1
+## Building Our Web Service Locally
 
-### Step 1: Understanding the Application
+---
 
-Our Flask application is a simple REST API with three endpoints:
+# Our Flask Application
+
+Three simple REST API endpoints:
 
 ```python
 GET /              # Welcome message with API info
@@ -31,41 +46,42 @@ GET /api/health    # Health check for monitoring
 GET /api/time      # Returns current server time
 ```
 
-### Step 2: Installing Dependencies
+Simple, easy to understand, perfect for learning!
 
-Navigate to the project directory:
+---
+
+# Installing Dependencies
 
 ```bash
+# Navigate to the project
 cd colorstackcu-teachin-docker-k8s-deploy
-```
 
-Install Python dependencies:
-
-```bash
+# Install Python dependencies
 pip install -r web-service/requirements.txt
 ```
 
-This installs:
-- **Flask**: Web framework for building REST APIs
-- **Werkzeug**: WSGI utility library (Flask dependency)
+**Installs:**
+- Flask 3.0 - Web framework
+- Werkzeug - WSGI utility library
 
-### Step 3: Running Locally
+---
 
-Start the development server:
+# Running Locally
 
 ```bash
+# Start the development server
 python web-service/app.py
 ```
 
-Expected output:
+**Expected output:**
 ```
  * Running on http://0.0.0.0:5000
  * Debug mode: on
 ```
 
-### Step 4: Testing the Endpoints
+---
 
-Open a new terminal and test:
+# Testing the Endpoints
 
 ```bash
 # Welcome endpoint
@@ -78,96 +94,97 @@ curl http://localhost:5000/api/health
 curl http://localhost:5000/api/time
 ```
 
+✅ Everything should return JSON responses
+
 ---
 
-## Section 3: Introduction to Docker
+<!-- _class: lead -->
+# Section 2
+## Introduction to Docker
 
-### What is a Container?
+---
 
-> A **container** is a lightweight, standalone package that includes everything needed to run an application: code, runtime, system tools, libraries, and settings.
+# What is a Container?
 
-**Key Characteristics:**
-- Isolated from the host system
-- Portable across different environments
-- Shares the host OS kernel (unlike VMs)
-- Starts in seconds
+> A **container** is a lightweight, standalone package that includes everything needed to run an application
 
-### What is Docker?
+**Includes:**
+- Code
+- Runtime
+- System tools
+- Libraries
+- Settings
+
+---
+
+# Key Container Characteristics
+
+✅ **Isolated** from the host system
+✅ **Portable** across different environments
+✅ **Shares** the host OS kernel (unlike VMs)
+✅ **Starts** in seconds
+
+---
+
+# What is Docker?
 
 **Docker** is a platform for developing, shipping, and running applications in containers.
 
 **Core Components:**
-1. **Docker Engine**: Runs and manages containers
-2. **Docker Image**: Blueprint/template for containers
-3. **Docker Container**: Running instance of an image
-4. **Dockerfile**: Instructions to build an image
+1. **Docker Engine** - Runs and manages containers
+2. **Docker Image** - Blueprint/template for containers
+3. **Docker Container** - Running instance of an image
+4. **Dockerfile** - Instructions to build an image
 
-### Why Use Containers?
+---
+
+# Why Use Containers?
 
 | Problem | Container Solution |
 |---------|-------------------|
-| "Works on my machine" | Consistent environment everywhere |
-| Complex dependencies | Self-contained with all dependencies |
-| Slow deployments | Fast startup and scaling |
-| Resource intensive VMs | Lightweight, share host kernel |
+| "Works on my machine" | ✅ Consistent everywhere |
+| Complex dependencies | ✅ Self-contained |
+| Slow deployments | ✅ Fast startup |
+| Resource intensive VMs | ✅ Lightweight |
 
-### Docker vs. Virtual Machines
+---
 
-```
-┌─────────────────────┐  ┌─────────────────────┐
-│   Virtual Machine   │  │      Container      │
-├─────────────────────┤  ├─────────────────────┤
-│   App 1  │  App 2   │  │   App 1  │  App 2   │
-│  Bins/Libs          │  │  Bins/Libs          │
-│  Guest OS           │  ├─────────────────────┤
-├─────────────────────┤  │    Docker Engine    │
-│    Hypervisor       │  ├─────────────────────┤
-├─────────────────────┤  │      Host OS        │
-│      Host OS        │  ├─────────────────────┤
-│    Infrastructure   │  │   Infrastructure    │
-└─────────────────────┘  └─────────────────────┘
+# Docker vs Virtual Machines
 
-    Gigabytes                  Megabytes
-    Minutes to start           Seconds to start
+**Virtual Machine:**
+- Entire guest OS included
+- Gigabytes in size
+- Minutes to start
+
+**Container:**
+- Shares host OS kernel
+- Megabytes in size
+- Seconds to start
+
+---
+
+<!-- _class: lead -->
+# Section 3
+## Building Our Docker Image
+
+---
+
+# Understanding the Dockerfile
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY web-service/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY web-service/ .
+EXPOSE 5000
+ENV FLASK_APP=app.py
+CMD ["python", "app.py"]
 ```
 
 ---
 
-## Section 4: Building Our Docker Image
-
-### Understanding the Dockerfile
-
-A **Dockerfile** contains instructions to build a Docker image.
-
-Let's examine our [`Dockerfile`](file:///Users/mikey/repos/colorstackcu-teachin-docker-k8s-deploy/Dockerfile):
-
-```dockerfile
-# Base image: Python 3.11 slim (smaller size)
-FROM python:3.11-slim
-
-# Set working directory
-WORKDIR /app
-
-# Copy requirements first (for layer caching)
-COPY web-service/requirements.txt .
-
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY web-service/ .
-
-# Expose port 5000
-EXPOSE 5000
-
-# Set environment variable
-ENV FLASK_APP=app.py
-
-# Run the application
-CMD ["python", "app.py"]
-```
-
-### Key Dockerfile Instructions
+# Key Dockerfile Instructions
 
 | Instruction | Purpose |
 |------------|---------|
@@ -177,11 +194,11 @@ CMD ["python", "app.py"]
 | `RUN` | Execute commands during build |
 | `EXPOSE` | Document which ports to expose |
 | `ENV` | Set environment variables |
-| `CMD` | Default command to run container |
+| `CMD` | Default command to run |
 
-### Docker Layer Caching
+---
 
-Docker builds images in **layers**. Each instruction creates a new layer.
+# Docker Layer Caching
 
 **Why copy requirements.txt separately?**
 
@@ -191,66 +208,63 @@ RUN pip install -r requirements.txt     # Layer 2 (slow)
 COPY web-service/ .                     # Layer 3
 ```
 
-- If you only change code (not requirements), layers 1-2 are cached
-- Pip install doesn't run again → faster builds!
+- If only code changes → layers 1-2 are cached
+- Pip install doesn't run again
+- ⚡ **Much faster builds!**
 
-### Building the Image
+---
 
-Build the Docker image:
+# Building the Image
 
 ```bash
 docker build -t colorstack-web-service:latest .
 ```
 
-**Flags explained:**
-- `-t`: Tag/name the image
-- `.`: Build context (current directory)
+**Flags:**
+- `-t` → Tag/name the image
+- `.` → Build context (current directory)
 
-Expected output:
-```
-[+] Building 12.3s (10/10) FINISHED
- => [1/5] FROM python:3.11-slim
- => [2/5] WORKDIR /app
- => [3/5] COPY web-service/requirements.txt .
- => [4/5] RUN pip install --no-cache-dir -r requirements.txt
- => [5/5] COPY web-service/ .
- => exporting to image
-```
+**Result:** ~165MB image created
 
-### Viewing Images
+---
 
-List all Docker images:
+# Viewing Images
 
 ```bash
 docker images
 ```
 
-You should see:
+**You should see:**
 ```
 REPOSITORY                TAG       SIZE
-colorstack-web-service    latest    ~150MB
+colorstack-web-service    latest    ~165MB
 python                    3.11-slim ~130MB
 ```
 
 ---
 
-## Section 5: Running Docker Containers
+<!-- _class: lead -->
+# Section 4
+## Running Docker Containers
 
-### Running Our Container
+---
 
-Start a container from our image:
+# Running Our Container
 
 ```bash
-docker run -d -p 8080:5000 --name my-web-service colorstack-web-service:latest
+docker run -d -p 8080:5000 \
+  --name my-web-service \
+  colorstack-web-service:latest
 ```
 
-**Flags explained:**
-- `-d`: Detached mode (run in background)
-- `-p 8080:5000`: Port mapping (host:container)
-- `--name`: Name the container
-- `colorstack-web-service:latest`: Image to use
+**Flags:**
+- `-d` → Detached mode (background)
+- `-p 8080:5000` → Port mapping (host:container)
+- `--name` → Name the container
 
-### Port Mapping
+---
+
+# Port Mapping Explained
 
 ```
 Your Computer          Container
@@ -263,7 +277,9 @@ Your Computer          Container
 
 Traffic to `localhost:8080` → forwarded to container's port `5000`
 
-### Testing the Containerized App
+---
+
+# Testing the Container
 
 ```bash
 # Welcome endpoint
@@ -276,53 +292,46 @@ curl http://localhost:8080/api/health
 curl http://localhost:8080/api/time
 ```
 
-### Useful Docker Commands
+✅ Same app, now containerized!
+
+---
+
+# Useful Docker Commands
 
 ```bash
-# List running containers
-docker ps
-
-# View all containers (including stopped)
-docker ps -a
-
-# View container logs
-docker logs my-web-service
-
-# Follow logs in real-time
-docker logs -f my-web-service
-
-# Stop container
-docker stop my-web-service
-
-# Start stopped container
-docker start my-web-service
-
-# Remove container
-docker rm my-web-service
-
-# Remove container (force stop if running)
-docker rm -f my-web-service
+docker ps                    # List running containers
+docker ps -a                 # All containers
+docker logs my-web-service   # View logs
+docker logs -f my-web-service # Follow logs
+docker stop my-web-service   # Stop container
+docker start my-web-service  # Start stopped container
+docker rm my-web-service     # Remove container
 ```
 
 ---
 
-## Section 6: Docker Compose
+<!-- _class: lead -->
+# Section 5
+## Docker Compose
 
-### What is Docker Compose?
+---
 
-**Docker Compose** is a tool for defining and running multi-container applications using a YAML configuration file.
+# What is Docker Compose?
+
+**Tool for defining and running multi-container applications using YAML**
 
 **Benefits:**
-- Define your entire stack in one file
-- Manage multiple containers together
-- Easier than long `docker run` commands
-- Great for development environments
+✅ Define entire stack in one file
+✅ Manage multiple containers together
+✅ Easier than long `docker run` commands
+✅ Great for development
 
-### Our docker-compose.yml
+---
+
+# Our compose.yml
 
 ```yaml
 version: '3.8'
-
 services:
   web-service:
     build: .
@@ -335,15 +344,9 @@ services:
     restart: unless-stopped
 ```
 
-### Key Concepts
+---
 
-- **Services**: Containers to run (we have one: `web-service`)
-- **Build**: Build from Dockerfile in current directory
-- **Ports**: Same as `-p` flag in docker run
-- **Environment**: Set environment variables
-- **Restart**: Restart policy if container crashes
-
-### Using Docker Compose
+# Using Docker Compose
 
 ```bash
 # Build and start all services
@@ -357,17 +360,19 @@ docker-compose logs -f
 
 # Stop all services
 docker-compose down
-
-# Rebuild and restart
-docker-compose up -d --build
 ```
 
-### Docker Compose vs Docker Run
+---
+
+# Docker Compose vs Docker Run
 
 **Docker Run:**
 ```bash
-docker run -d -p 8080:5000 -e PORT=5000 -e FLASK_ENV=development \
-  --restart unless-stopped --name colorstack-web-service colorstack-web-service:latest
+docker run -d -p 8080:5000 -e PORT=5000 \
+  -e FLASK_ENV=development \
+  --restart unless-stopped \
+  --name colorstack-web-service \
+  colorstack-web-service:latest
 ```
 
 **Docker Compose:**
@@ -375,109 +380,91 @@ docker run -d -p 8080:5000 -e PORT=5000 -e FLASK_ENV=development \
 docker-compose up -d
 ```
 
-Much simpler! Especially with multiple services.
+**Much simpler!** Especially with multiple services.
 
 ---
 
-## Section 7: Introduction to Kubernetes
+<!-- _class: lead -->
+# Section 6
+## Introduction to Kubernetes
 
-### What is Kubernetes (K8s)?
+---
 
-**Kubernetes** is an open-source container orchestration platform for automating deployment, scaling, and management of containerized applications.
+# What is Kubernetes (K8s)?
 
-**Think of it as:**
-- Docker manages individual containers
-- Kubernetes manages fleets of containers across multiple machines
+**Open-source container orchestration platform**
 
-### Why Kubernetes?
+**Manages:**
+- Deployment automation
+- Scaling
+- Management of containerized applications
+
+**Think of it:** Docker manages containers, Kubernetes manages fleets of containers across machines
+
+---
+
+# Why Kubernetes?
 
 | Feature | Benefit |
 |---------|---------|
-| **Auto-scaling** | Scale up/down based on load |
-| **Self-healing** | Automatically restart failed containers |
-| **Load balancing** | Distribute traffic across containers |
-| **Rolling updates** | Zero-downtime deployments |
-| **Service discovery** | Containers find each other automatically |
+| Auto-scaling | Scale up/down based on load |
+| Self-healing | Restart failed containers |
+| Load balancing | Distribute traffic |
+| Rolling updates | Zero-downtime deployments |
+| Service discovery | Containers find each other |
 
-### When to Use Kubernetes?
+---
 
-**Good fit:**
+# When to Use Kubernetes?
+
+**✅ Good fit:**
 - Microservices architectures
-- Applications that need high availability
-- Teams running many containers
-- Multi-environment deployments (dev, staging, prod)
+- High availability needs
+- Many containers
+- Multi-environment deployments
 
-**Overkill for:**
+**❌ Overkill for:**
 - Simple single-container apps
-- Prototypes or MVPs
+- Prototypes/MVPs
 - Small teams learning containers
 
-### Kubernetes Architecture
+---
 
-```
-┌──────────────────────────────────────────────┐
-│             Kubernetes Cluster               │
-│  ┌────────────────────────────────────────┐  │
-│  │         Control Plane (Master)         │  │
-│  │  • API Server                          │  │
-│  │  • Scheduler                           │  │
-│  │  • Controller Manager                  │  │
-│  └────────────────────────────────────────┘  │
-│                                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │  Node 1  │  │  Node 2  │  │  Node 3  │  │
-│  │  ┌────┐  │  │  ┌────┐  │  │  ┌────┐  │  │
-│  │  │Pod │  │  │  │Pod │  │  │  │Pod │  │  │
-│  │  └────┘  │  │  └────┘  │  │  └────┘  │  │
-│  └──────────┘  └──────────┘  └──────────┘  │
-└──────────────────────────────────────────────┘
-```
-
-### Key Kubernetes Concepts
+# Key Kubernetes Concepts
 
 **Pod**
 - Smallest deployable unit
 - Contains one or more containers
-- Shares network and storage
 
 **Deployment**
 - Manages a set of identical Pods
 - Handles scaling and updates
-- Ensures desired state
 
 **Service**
 - Exposes Pods to network traffic
 - Provides load balancing
-- Stable IP address and DNS name
-
-**Namespace**
-- Virtual cluster within a cluster
-- Isolates resources
 
 ---
 
-## Section 8: Deploying to Minikube
+<!-- _class: lead -->
+# Section 7
+## Deploying to Minikube
 
-### What is Minikube?
+---
 
-**Minikube** runs a single-node Kubernetes cluster on your local machine for development and learning.
+# What is Minikube?
+
+**Runs a single-node Kubernetes cluster locally**
 
 **Perfect for:**
-- Learning Kubernetes
-- Local development
-- Testing K8s manifests
-- CI/CD testing
+✅ Learning Kubernetes
+✅ Local development
+✅ Testing K8s manifests
+✅ CI/CD testing
 
-### Prerequisites Check
+---
 
-Ensure you have:
-1. ✅ Docker Desktop running
-2. ✅ kubectl installed
-3. ✅ Minikube installed
-
-See [`minikube-setup.md`](file:///Users/mikey/repos/colorstackcu-teachin-docker-k8s-deploy/minikube-setup.md) for installation instructions.
-
-### Starting Minikube
+# Starting Minikube
 
 ```bash
 # Start Minikube cluster
@@ -490,81 +477,41 @@ minikube status
 kubectl cluster-info
 ```
 
-### Important: Using Local Docker Images
+---
 
-Minikube runs in its own Docker environment. To use our local image:
+# Using Local Docker Images
+
+Minikube runs in its own Docker environment.
+
+**To use our local image:**
 
 ```bash
-# Point your shell to Minikube's Docker daemon
+# Point shell to Minikube's Docker daemon
 eval $(minikube docker-env)
 
-# Build the image again (now it's in Minikube's registry)
+# Build the image (now in Minikube's registry)
 docker build -t colorstack-web-service:latest .
-
-# Verify the image is available
-docker images | grep colorstack
 ```
 
-### Our Kubernetes Manifests
+---
 
-Our [`deploy.yaml`](file:///Users/mikey/repos/colorstackcu-teachin-docker-k8s-deploy/deploy.yaml) contains two resources:
+# Our Kubernetes Manifests
 
-**1. Deployment** (manages Pods)
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: web-service
-spec:
-  replicas: 2  # Run 2 copies
-  selector:
-    matchLabels:
-      app: web-service
-  template:
-    metadata:
-      labels:
-        app: web-service
-    spec:
-      containers:
-      - name: web-service
-        image: colorstack-web-service:latest
-        imagePullPolicy: Never  # Use local image
-        ports:
-        - containerPort: 5000
-```
+**deploy.yaml contains:**
 
-**2. Service** (exposes Pods)
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: web-service
-spec:
-  type: LoadBalancer
-  selector:
-    app: web-service  # Routes to Pods with this label
-  ports:
-  - port: 80
-    targetPort: 5000
-```
+1. **Deployment** - Manages 2 Pod replicas
+2. **Service** - Exposes Pods via LoadBalancer
 
-### Deploying to Kubernetes
+Both are well-commented for teaching!
 
-Apply the manifests:
+---
+
+# Deploying to Kubernetes
 
 ```bash
+# Apply the manifests
 kubectl apply -f deploy.yaml
-```
 
-Expected output:
-```
-deployment.apps/web-service created
-service/web-service created
-```
-
-### Verifying the Deployment
-
-```bash
 # Check deployments
 kubectl get deployments
 
@@ -573,51 +520,27 @@ kubectl get pods
 
 # Check services
 kubectl get services
-
-# Detailed pod information
-kubectl describe pod <pod-name>
-
-# View pod logs
-kubectl logs <pod-name>
 ```
 
-Expected output:
-```
-NAME          READY   UP-TO-DATE   AVAILABLE   AGE
-web-service   2/2     2            2           30s
+---
 
-NAME          READY   STATUS    RESTARTS   AGE
-web-service-xxx   1/1     Running   0          30s
-web-service-yyy   1/1     Running   0          30s
-
-NAME          TYPE           EXTERNAL-IP   PORT(S)        AGE
-web-service   LoadBalancer   <pending>     80:30123/TCP   30s
-```
-
-### Accessing the Service
-
-Get the Minikube service URL:
+# Accessing the Service
 
 ```bash
+# Get the service URL
 minikube service web-service --url
-```
 
-This returns something like: `http://192.168.49.2:30123`
-
-Test it:
-
-```bash
-# Replace with your actual URL
+# Test it
 export SERVICE_URL=$(minikube service web-service --url)
-
 curl $SERVICE_URL/
 curl $SERVICE_URL/api/health
-curl $SERVICE_URL/api/time
 ```
 
-### Scaling the Application
+---
 
-One of Kubernetes' superpowers is easy scaling:
+# Scaling the Application
+
+**One of Kubernetes' superpowers:**
 
 ```bash
 # Scale to 5 replicas
@@ -630,103 +553,83 @@ kubectl get pods
 kubectl scale deployment web-service --replicas=2
 ```
 
-### Updating the Application
+⚡ **Instant scaling!**
 
-Make a change to [`app.py`](file:///Users/mikey/repos/colorstackcu-teachin-docker-k8s-deploy/web-service/app.py), then:
+---
 
-```bash
-# Rebuild image (in Minikube's Docker)
-eval $(minikube docker-env)
-docker build -t colorstack-web-service:latest .
-
-# Restart pods to use new image
-kubectl rollout restart deployment web-service
-
-# Watch rollout status
-kubectl rollout status deployment web-service
-```
-
-### Kubernetes Dashboard
-
-Minikube includes a web UI:
+# Kubernetes Dashboard
 
 ```bash
 minikube dashboard
 ```
 
-This opens a browser with:
+**Opens web UI with:**
 - Visual view of all resources
 - Pod logs
 - Resource usage
-- And more!
+- Easy troubleshooting
 
-### Cleanup
+---
 
-When you're done:
+<!-- _class: lead -->
+# Recap & Next Steps
 
-```bash
-# Delete the deployment and service
-kubectl delete -f deploy.yaml
+---
 
-# Stop Minikube
-minikube stop
+# What We Learned
 
-# Delete the cluster (optional)
-minikube delete
+✅ Built a Python Flask web service
+✅ Ran it locally with pip
+✅ Understood Docker concepts
+✅ Created a Dockerfile
+✅ Built and ran Docker containers
+✅ Simplified with Docker Compose
+✅ Learned Kubernetes concepts
+✅ Deployed to Minikube
+✅ Scaled applications
+
+---
+
+# The Progression
+
+```
+Local Development
+    ↓
+Docker Container (Portable)
+    ↓
+Docker Compose (Multi-service)
+    ↓
+Kubernetes (Production-ready)
 ```
 
 ---
 
-## Section 9: Recap & Next Steps
-
-### What We Learned
-
-1. ✅ Built a Python Flask web service
-2. ✅ Ran it locally with pip
-3. ✅ Understood Docker concepts and benefits
-4. ✅ Created a Dockerfile
-5. ✅ Built and ran Docker containers
-6. ✅ Simplified with Docker Compose
-7. ✅ Introduced Kubernetes concepts
-8. ✅ Deployed to Minikube
-9. ✅ Scaled and updated the application
-
-### The Progression
-
-```
-Local Development → Docker Container → Docker Compose → Kubernetes
-(Single machine)    (Portable)         (Multi-service)  (Production-ready)
-```
-
-### Key Takeaways
+# Key Takeaways
 
 **Containers solve:**
-- "Works on my machine" problems
-- Dependency management
-- Consistent environments
-
-**Docker provides:**
-- Easy containerization
-- Image distribution
-- Local development tools
+- "Works on my machine" ✅
+- Dependency management ✅
+- Consistent environments ✅
 
 **Kubernetes adds:**
-- Auto-scaling
-- Self-healing
-- Load balancing
-- Production-grade orchestration
+- Auto-scaling ✅
+- Self-healing ✅
+- Production-grade orchestration ✅
 
-### Next Steps
+---
 
-**Deepen Your Knowledge:**
-1. Add a database (PostgreSQL) to docker-compose
-2. Implement persistent storage in Kubernetes
+# Next Steps
+
+1. Add database to docker-compose
+2. Implement persistent storage in K8s
 3. Set up CI/CD pipelines
-4. Explore Helm (K8s package manager)
-5. Learn about Ingress controllers
-6. Deploy to a managed Kubernetes service (GKE, EKS, AKS)
+4. Explore Helm charts
+5. Deploy to managed K8s (GKE, EKS, AKS)
 
-**Resources:**
+---
+
+# Resources
+
 - [Docker Documentation](https://docs.docker.com/)
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [Minikube Documentation](https://minikube.sigs.k8s.io/docs/)
@@ -735,10 +638,9 @@ Local Development → Docker Container → Docker Compose → Kubernetes
 
 ---
 
-## Questions?
+<!-- _class: lead -->
+# Questions?
 
-Thank you for participating in this workshop! 🎉
+## Thank you! 🎉
 
-**Contact:**
-- GitHub: [colorstackcu-teachin-docker-k8s-deploy](https://github.com/)
-- Project files: [`README.md`](file:///Users/mikey/repos/colorstackcu-teachin-docker-k8s-deploy/README.md)
+**Check out the full resources in the repo**
