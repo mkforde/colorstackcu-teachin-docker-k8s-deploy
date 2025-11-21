@@ -1,0 +1,86 @@
+---
+# Deployment: Manages a set of identical pods
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-service
+  labels:
+    app: web-service
+spec:
+  # Number of pod replicas to run
+  replicas: 2
+  
+  # Selector to identify pods managed by this deployment
+  selector:
+    matchLabels:
+      app: web-service
+  
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: web-service
+    spec:
+      containers:
+      - name: web-service
+        # IMPORTANT: Replace this with your actual image
+        # For Minikube, you can use a local image with imagePullPolicy: Never
+        image: colorstack-web-service:latest
+        imagePullPolicy: Never  # Use local image, don't pull from registry
+        
+        ports:
+        - containerPort: 5000
+          name: http
+        
+        # Environment variables
+        env:
+        - name: PORT
+          value: "5000"
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        
+        # Liveness probe: Kubernetes will restart the pod if this fails
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        
+        # Readiness probe: Pod won't receive traffic until this succeeds
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Service: Exposes the deployment to network traffic
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  labels:
+    app: web-service
+spec:
+  # LoadBalancer type works with Minikube
+  # In production, this would create a cloud load balancer
+  type: LoadBalancer
+  
+  # Selector to route traffic to pods with this label
+  selector:
+    app: web-service
+  
+  ports:
+  - port: 80          # Service port (external)
+    targetPort: 5000  # Container port (internal)
+    protocol: TCP
+    name: http
