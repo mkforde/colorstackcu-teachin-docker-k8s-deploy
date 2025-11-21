@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  web-service:
+    # Build from Dockerfile in current directory
+    build: .
+
+    # Container name
+    container_name: colorstack-web-service
+
+    # Port mapping: host:container
+    # This maps port 8080 on your machine to port 5000 in the container
+    ports:
+      - "8080:5000"
+
+    # Environment variables
+    environment:
+      - PORT=5000
+      - FLASK_ENV=development
+
+    # Restart policy
+    restart: unless-stopped
+    # Optional: Mount source code for development
+    # Uncomment to enable hot-reloading during development
+    # volumes:
+    #   - ./web-service:/app
